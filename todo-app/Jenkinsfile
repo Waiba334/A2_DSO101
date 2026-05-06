@@ -10,41 +10,39 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    credentialsId: 'github-creds',
-                    url: 'https://github.com/Waiba334/A2Jenkinfiles.git'
+                checkout scm
             }
         }
         stage('Install Backend') {
             steps {
-                dir('backend') {
+                dir('todo-app/backend') {
                     sh 'npm install'
                 }
             }
         }
         stage('Test Backend') {
             steps {
-                dir('backend') {
+                dir('todo-app/backend') {
                     sh 'npm test'
                 }
             }
             post {
                 always {
                     junit allowEmptyResults: true,
-                          testResults: 'backend/junit.xml'
+                          testResults: 'todo-app/backend/junit.xml'
                 }
             }
         }
         stage('Install Frontend') {
             steps {
-                dir('frontend') {
+                dir('todo-app/frontend') {
                     sh 'npm install'
                 }
             }
         }
         stage('Build Frontend') {
             steps {
-                dir('frontend') {
+                dir('todo-app/frontend') {
                     sh 'npm run build'
                 }
             }
@@ -55,12 +53,12 @@ pipeline {
                     docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-creds') {
                         def beImage = docker.build(
                             "${DOCKERHUB_USER}/be-todo:${IMAGE_TAG}",
-                            '--platform linux/amd64 ./backend'
+                            '--platform linux/amd64 ./todo-app/backend'
                         )
                         beImage.push()
                         def feImage = docker.build(
                             "${DOCKERHUB_USER}/fe-todo:${IMAGE_TAG}",
-                            '--platform linux/amd64 ./frontend'
+                            '--platform linux/amd64 ./todo-app/frontend'
                         )
                         feImage.push()
                     }
