@@ -1,0 +1,79 @@
+pipeline {
+    agent any
+    tools {
+        nodejs 'NodeJS'
+    }
+    environment {
+        DOCKERHUB_USER = 'bishalwaiba'
+        IMAGE_TAG = '02240335'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    credentialsId: 'github-creds',
+                    url: 'https://github.com/Waiba334/A1_DSO101.git'
+            }
+        }
+        stage('Install Backend') {
+            steps {
+                dir('todo-app/backend') {
+                    sh 'npm install'
+                }
+            }
+        }
+        stage('Test Backend') {
+            steps {
+                dir('todo-app/backend') {
+                    sh 'npm test'
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true,
+                          testResults: 'todo-app/backend/junit.xml'
+                }
+            }
+        }
+        stage('Install Frontend') {
+            steps {
+                dir('todo-app/frontend') {
+                    sh 'npm install'
+                }
+            }
+        }
+        stage('Build Frontend') {
+            steps {
+                dir('todo-app/frontend') {
+                    sh 'npm run build'
+                }
+            }
+        }
+        stage('Build & Push Docker Images') {
+            steps {
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-creds') {
+                        def beImage = docker.build(
+                            "${DOCKERHUB_USER}/be-todo:${IMAGE_TAG}",
+                            '--platform linux/amd64 ./todo-app/backend'
+                        )
+                        beImage.push()
+                        def feImage = docker.build(
+                            "${DOCKERHUB_USER}/fe-todo:${IMAGE_TAG}",
+                            '--platform linux/amd64 ./todo-app/frontend'
+                        )
+                        feImage.push()
+                    }
+                }
+            }
+        }
+    }
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Check logs above.'
+        }
+    }
+}
