@@ -36,6 +36,7 @@ pipeline {
         stage('Install Frontend') {
             steps {
                 dir('todo-app/frontend') {
+                    sh 'rm -rf node_modules package-lock.json'
                     sh 'npm install'
                 }
             }
@@ -50,17 +51,18 @@ pipeline {
         stage('Build & Push Docker Images') {
             steps {
                 script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-creds') {
-                        def beImage = docker.build(
-                            "${DOCKERHUB_USER}/be-todo:${IMAGE_TAG}",
-                            '--platform linux/amd64 ./todo-app/backend'
-                        )
-                        beImage.push()
-                        def feImage = docker.build(
-                            "${DOCKERHUB_USER}/fe-todo:${IMAGE_TAG}",
-                            '--platform linux/amd64 ./todo-app/frontend'
-                        )
-                        feImage.push()
+                    withCredentials([usernamePassword(
+                        credentialsId: 'docker-hub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+                        sh '''
+                            /usr/local/bin/docker login -u $DOCKER_USER -p $DOCKER_PASS https://registry.hub.docker.com
+                            /usr/local/bin/docker build --platform linux/amd64 -t bishalwaiba/be-todo:02240335 ./todo-app/backend
+                            /usr/local/bin/docker push bishalwaiba/be-todo:02240335
+                            /usr/local/bin/docker build --platform linux/amd64 -t bishalwaiba/fe-todo:02240335 ./todo-app/frontend
+                            /usr/local/bin/docker push bishalwaiba/fe-todo:02240335
+                        '''
                     }
                 }
             }
