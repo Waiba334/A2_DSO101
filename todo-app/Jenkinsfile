@@ -61,7 +61,7 @@ pipeline {
                             /usr/local/bin/docker build --platform linux/amd64 -t bishalwaiba/be-todo:02240335 ./todo-app/backend
                             /usr/local/bin/docker push bishalwaiba/be-todo:02240335
                             /usr/local/bin/docker build --platform linux/amd64 -t bishalwaiba/fe-todo:latest ./todo-app/frontend
-                            /usr/local/bin/docker push bishalwaiba/fe-todo:02240335
+                            /usr/local/bin/docker push bishalwaiba/fe-todo:latest
                         '''
                     }
                 }
