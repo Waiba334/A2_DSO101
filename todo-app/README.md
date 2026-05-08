@@ -1,368 +1,372 @@
-# DSO101 — Assignment 1: CI/CD with Docker and Render
+# DSO101 — Assignment 2: Jenkins CI/CD Pipeline
 
 **Student Name:** Samuel Tamang  
 **Student ID:** 02240335  
 **Course:** DSO101 — Continuous Integration and Continuous Deployment  
 **Program:** Bachelor's of Engineering in Software Engineering  
-**GitHub Repository:** https://github.com/Waiba334/A1_DSO101
+**Date of Submission:** 25th March  
+**GitHub Repository:** https://github.com/Waiba334/A2_DSO101
 
 ---
 
 ## Table of Contents
 
-1. [Application Overview](#application-overview)
-2. [Step 0 — Building the Todo Application](#step-0--building-the-todo-application)
-3. [Part A — Docker Hub and Render Deployment](#part-a--docker-hub-and-render-deployment)
-4. [Part B — Automated Deployment from GitHub](#part-b--automated-deployment-from-github)
-5. [Live URLs](#live-urls)
+1. [Objective](#objective)
+2. [Tools and Technologies](#tools-and-technologies)
+3. [Task 1 — Jenkins Setup](#task-1--jenkins-setup)
+4. [Task 2 — GitHub Repository Setup](#task-2--github-repository-setup)
+5. [Task 3 — Jenkinsfile Pipeline](#task-3--jenkinsfile-pipeline)
+6. [Task 4 — Running the Pipeline](#task-4--running-the-pipeline)
+7. [Challenges Faced](#challenges-faced)
 
 ---
 
-## Application Overview
+## Objective
 
-This project is a full-stack Todo List web application built with the following tech stack:
+In this assignment, a Jenkins pipeline was configured to automate the build, test, and deployment of the Todo List application from Assignment 1. The pipeline includes:
 
-- **Frontend:** React (Vite) — UI for adding, editing, deleting, and completing tasks
-- **Backend:** Node.js + Express — REST API with CRUD operations
-- **Database:** PostgreSQL — persistent storage for todos
-
-The application supports:
-- Adding tasks with a title and optional description
-- Marking tasks as complete/incomplete
-- Editing existing tasks
-- Deleting tasks
-- Displaying total, done, and pending task counts
+- Code checkout from GitHub
+- Dependency installation (npm)
+- Build step (Vite frontend build)
+- Unit testing (Jest)
+- Deployment (Docker image build and push to Docker Hub)
 
 ---
 
-## Step 0 — Building the Todo Application
+## Tools and Technologies
 
-### Project Structure
-
-```
-todo-app/
-├── frontend/
-│   ├── src/
-│   │   └── App.jsx
-│   ├── Dockerfile
-│   ├── .env
-│   ├── .gitignore
-│   └── vite.config.js
-├── backend/
-│   ├── server.js
-│   ├── Dockerfile
-│   ├── .env
-│   └── .gitignore
-└── render.yaml
-```
-
-### Backend — Environment Variables (.env)
-
-```
-DB_HOST=your-db-host
-DB_PORT=5432
-DB_USER=your-db-user
-DB_PASSWORD=your-db-password
-DB_NAME=your-db-name
-PORT=5000
-```
-
-### Screenshot 1 — Project Structure in VS Code
-
-![alt text](<images/Screenshot 2026-05-06 at 2.36.53 PM.png>)
+| Tool | Purpose |
+|------|---------|
+| Jenkins 2.555.1 | CI/CD automation |
+| GitHub | Source code hosting |
+| Node.js 20.x | JavaScript runtime |
+| Jest + Jest-JUnit | Testing framework |
+| Docker | Containerization |
+| Docker Hub | Image registry |
 
 ---
 
-### Screenshot 2 — Application Running Locally (Frontend)
+## Task 1 — Jenkins Setup
 
-![Screenshot: Browser showing the Todo app UI](./images/Screenshot%202026-04-29%20at%209.10.42%20PM.png)
+### Step 1 — Install Jenkins
 
----
-
-### Screenshot 3 — Backend Running Locally
-
-![Backend Running Locally](./images/Screenshot%202026-04-29%20at%209.26.06%20PM.png)
-
----
-
-## Part A — Docker Hub and Render Deployment
-
-### Step 1 — Writing the Dockerfiles
-
-**Backend Dockerfile:**
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-EXPOSE 5000
-CMD ["node", "server.js"]
-```
-
-**Frontend Dockerfile:**
-```dockerfile
-FROM node:20-alpine AS build
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-ENV VITE_API_URL=https://be-todo-02240335.onrender.com
-RUN npm run build
-
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-```
-
----
-
-### Screenshot 4 — Backend Dockerfile
-
-![Backend Dockerfile](<images/Screenshot 2026-04-29 at 9.29.50 PM.png>)
-
----
-
-### Screenshot 5 — Frontend Dockerfile
-
-![Frontend Dockerfile](<images/Screenshot 2026-04-29 at 9.31.10 PM.png>)
----
-
-### Step 2 — Building Docker Images
+Jenkins was installed using Homebrew on macOS:
 
 ```bash
-# Backend
-cd backend
-docker build --platform linux/amd64 -t bishalwaiba/be-todo:02240335 .
+brew install jenkins-lts
+brew services start jenkins-lts
+```
 
-# Frontend
-cd frontend
-docker build --platform linux/amd64 -t bishalwaiba/fe-todo:02240335 .
+Jenkins runs at `http://localhost:8080`
+
+### Screenshot 1 — Jenkins Dashboard
+
+![alt text](<images/Screenshot 2026-05-08 at 11.15.12 AM.png>)
+
+---
+
+### Step 2 — Install Required Plugins
+
+Navigate to **Manage Jenkins → Plugins → Available plugins** and install:
+
+| Plugin | Purpose |
+|--------|---------|
+| NodeJS Plugin | Run npm commands in pipeline |
+| Pipeline | Create declarative pipelines |
+| GitHub Integration Plugin | Connect to GitHub repos |
+| Docker Pipeline | Build and push Docker images |
+
+### Screenshot 2 — NodeJS Plugin Installed
+
+![alt text](images/preview.webp)
+
+### Screenshot 3 — Docker Pipeline Plugin Installed
+
+![alt text](images/1.webp)
+
+### Screenshot 4 — GitHub Integration Plugin Installed
+
+![alt text](images/3.webp)
+
+---
+
+### Step 3 — Configure NodeJS in Jenkins Tools
+
+1. Go to **Manage Jenkins → Tools**
+2. Scroll to **NodeJS installations**
+3. Click **Add NodeJS**
+4. Set Name: `NodeJS`, Version: `NodeJS 20.20.0`
+5. Click **Save**
+
+### Screenshot 5 — NodeJS Tool Configuration
+
+![alt text](images/preview.webp)
+
+---
+
+## Task 2 — GitHub Repository Setup
+
+### Step 1 — Repository Structure
+
+![alt text](<images/Screenshot 2026-05-08 at 11.22.17 AM.png>)
+
+### Screenshot 6 — GitHub Repository
+
+![alt text](<images/Screenshot 2026-05-08 at 11.22.55 AM.png>)
+
+---
+
+### Step 2 — Generate GitHub Personal Access Token (PAT)
+
+1. Go to GitHub → **Settings → Developer settings**
+2. Click **Personal access tokens → Tokens (classic)**
+3. Click **Generate new token (classic)**
+4. Set scopes: `repo` and `admin:repo_hook`
+5. Copy the token
+
+
+### Step 3 — Add GitHub Credentials in Jenkins
+
+1. Go to **Manage Jenkins → Credentials → System → Global**
+2. Click **Add Credentials**
+3. Fill in:
+   - Kind: Username with password
+   - Username: `Waiba334`
+   - Password: GitHub PAT token
+   - ID: `github-creds`
+   - Description: `GitHub PAT`
+
+
+### Step 4 — Add Docker Hub Credentials in Jenkins
+
+1. Click **Add Credentials** again
+2. Fill in:
+   - Kind: Username with password
+   - Username: `bishalwaiba`
+   - Password: Docker Hub password
+   - ID: `docker-hub-creds`
+   - Description: `Docker Hub`
+
+### Screenshot 7 — Both Credentials Added
+
+![alt text](<images/Screenshot 2026-05-08 at 11.24.04 AM.png>)
+
+---
+
+## Task 3 — Jenkinsfile Pipeline
+
+The Jenkinsfile defines the complete CI/CD pipeline with the following stages:
+
+### Full Jenkinsfile
+
+```groovy
+pipeline {
+    agent any
+    tools {
+        nodejs 'NodeJS'
+    }
+    environment {
+        DOCKERHUB_USER = 'bishalwaiba'
+        IMAGE_TAG = '02240335'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Install Backend') {
+            steps {
+                dir('todo-app/backend') {
+                    sh 'npm install'
+                    sh 'npm install --save-dev jest jest-junit'
+                }
+            }
+        }
+        stage('Test Backend') {
+            steps {
+                dir('todo-app/backend') {
+                    sh 'npm install'
+                    sh 'npm test'
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true,
+                          testResults: 'todo-app/backend/junit.xml'
+                }
+            }
+        }
+        stage('Install Frontend') {
+            steps {
+                dir('todo-app/frontend') {
+                    sh 'rm -rf node_modules package-lock.json'
+                    sh 'npm install'
+                }
+            }
+        }
+        stage('Build Frontend') {
+            steps {
+                dir('todo-app/frontend') {
+                    sh 'npm run build'
+                }
+            }
+        }
+        stage('Build & Push Docker Images') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'docker-hub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+                        sh '/usr/local/bin/docker login -u bishalwaiba -p $DOCKER_PASS'
+                        sh '/usr/local/bin/docker build -t bishalwaiba/be-todo:02240335 ./todo-app/backend'
+                        sh '/usr/local/bin/docker push bishalwaiba/be-todo:02240335'
+                        sh '/usr/local/bin/docker build -t bishalwaiba/fe-todo:latest ./todo-app/frontend'
+                        sh '/usr/local/bin/docker push bishalwaiba/fe-todo:latest'
+                    }
+                }
+            }
+        }
+    }
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Check logs above.'
+        }
+    }
+}
+```
+
+![alt text](<images/Screenshot 2026-05-08 at 11.25.31 AM.png>)
+
+### Test File (todo.test.js)
+
+A simple Jest test file was created to verify the backend:
+
+```javascript
+test('basic math works', () => {
+  expect(1 + 1).toBe(2);
+});
+
+test('todo object has required fields', () => {
+  const todo = { id: 1, task: 'Buy milk', completed: false };
+  expect(todo).toHaveProperty('task');
+  expect(todo).toHaveProperty('completed');
+  expect(todo.completed).toBe(false);
+});
 ```
 
 ---
 
-### Screenshot 6 — Backend Docker Build Success
+## Task 4 — Running the Pipeline
 
-![Backend Docker Build](<images/Screenshot 2026-04-15 at 9.56.19 PM.png>)
----
+### Step 1 — Create Pipeline in Jenkins
 
-### Screenshot 7 — Frontend Docker Build Success
-
-![Frontend Docker Build](<images/Screenshot 2026-04-15 at 9.55.09 PM.png>)
----
-
-### Step 3 — Pushing Images to Docker Hub
-
-```bash
-docker login
-docker push bishalwaiba/be-todo:02240335
-docker push bishalwaiba/fe-todo:02240335
-```
-
----
+1. Jenkins dashboard → **New Item**
+2. Name: `todo-pipeline` → Select **Pipeline** → OK
+3. Under Pipeline section:
+   - Definition: `Pipeline script from SCM`
+   - SCM: `Git`
+   - Repository URL: `https://github.com/Waiba334/A2_DSO101.git`
+   - Credentials: `github-creds`
+   - Branch: `*/main`
+   - Script Path: `todo-app/jenkinsfile`
+4. Click **Save**
 
 
-### Screenshot 8 — Backend Image Pushed
+### Step 2 — Run the Pipeline
 
-![Backend Image Pushed](<images/Screenshot 2026-04-15 at 9.56.04 PM.png>)
----
-
-### Screenshot 9 — Frontend Image Pushed
-
-![Frontend Image Pushed](<images/Screenshot 2026-04-15 at 9.55.30 PM.png>)
----
-
-### Screenshot 10 — Docker Hub Repositories
-
-![Docker Hub Repo](<images/Screenshot 2026-03-27 at 2.48.34 PM.png>)
----
+Click **Build Now** and watch the stages execute.
 
 
-### Step 4 — Setting Up PostgreSQL on Render
+### Step 3 — Successful Pipeline
 
-1. Logged into Render.com
-2. New → PostgreSQL → named `todo-db`
-3. Copied credentials from Connections tab
+### Screenshot 13 — All Stages Green ✅
+
+![alt text](<images/Screenshot 2026-05-08 at 11.09.21 AM.png>)
+
+
+### Screenshot 15 — Test Result Trend Graph
+
+![alt text](<images/Screenshot 2026-05-08 at 11.09.42 AM.png>)
+
+### Screenshot 16 — Console Output — SUCCESS
+
+![alt text](<images/Screenshot 2026-05-08 at 11.28.07 AM.png>)
 
 ---
 
-### Screenshot 11 — Render PostgreSQL Created
+### Step 4 — Verify on Docker Hub
 
-![Render](<images/Screenshot 2026-04-29 at 9.43.25 PM.png>)
----
+### Screenshot 19 — Docker Hub Images Updated
 
-### Screenshot 12 — Render PostgreSQL Connection Details
-
-![Render psql](<images/Screenshot 2026-04-29 at 9.43.54 PM.png>)
----
-
-### Step 5 — Deploying Backend on Render
-
-1. New → Web Service → Existing Image
-2. Image URL: `bishalwaiba/be-todo:02240335`
-3. Added all DB environment variables
-
-**Environment variables configured:**
-
-| Key | Value |
-|-----|-------|
-| DB_HOST | dpg-d7mb3868bjmc7388gpj0-a |
-| DB_PORT | 5432 |
-| DB_USER | todo_db_d50l_user |
-| DB_PASSWORD | (hidden) |
-| DB_NAME | todo_db_d50l |
-| PORT | 5000 |
+![alt text](<images/Screenshot 2026-05-08 at 11.29.49 AM.png>)
 
 ---
 
+## Challenges Faced
 
-### Screenshot 14 — Backend Environment Variables on Render
+### Challenge 1 — Docker Path Not Found
+**Problem:** Jenkins could not find the `docker` command — `Cannot run program "docker": No such file or directory`.
 
-![Backend Env](<images/Screenshot 2026-04-29 at 9.48.37 PM.png>)
-
----
-
-
-### Screenshot 19 — Backend API Working in Browser
-
-![alt text](<images/Screenshot 2026-04-29 at 3.40.11 PM.png>)
+**Solution:** Used the full Docker path `/usr/local/bin/docker` instead of just `docker` in all shell commands. Also added the PATH environment variable in Jenkins global configuration.
 
 ---
 
-### Step 6 — Deploying Frontend on Render
+### Challenge 2 — NodeJS Version Too Old for Vite
+**Problem:** The frontend build failed because Jenkins installed NodeJS 20.18.3 but Vite 8 requires Node 20.19+.
 
-1. New → Web Service → Existing Image
-2. Image URL: `bishalwaiba/fe-todo:latest`
-3. Added VITE_API_URL environment variable
-
----
-
-
-### Screenshot 20 — Frontend Environment Variables on Render
-
-![Frontend Env](<images/Screenshot 2026-04-29 at 9.52.21 PM.png>)
+**Solution:** Updated the NodeJS installation in Jenkins Tools from version 20.18.x to 20.20.0 which satisfied Vite's requirements.
 
 ---
 
-### Screenshot 21 — Deployed Successfully
+### Challenge 3 — Jest Not Found in Pipeline
+**Problem:** `sh: jest: command not found` error during Test Backend stage.
 
-![Deployed Successfully](<images/Screenshot 2026-04-29 at 9.53.05 PM.png>)
-
----
-
-
-### Screenshot 22 — Live Frontend Application
-
-![alt text](<images/Screenshot 2026-04-29 at 9.55.34 PM.png>)
+**Solution:** Added an explicit `npm install --save-dev jest jest-junit` step in the Install Backend stage to ensure devDependencies are always installed regardless of the NODE_ENV setting.
 
 ---
 
+### Challenge 4 — Docker Push Failing with 400 Bad Request
+**Problem:** Docker push was failing with `400 Bad Request` and `broken pipe` errors after pushing some layers.
 
-### Screenshot 23 — Task Confirmed in Backend API
-
-![alt text](<images/Screenshot 2026-04-29 at 9.56.24 PM.png>)
-
----
-
-## Part B — Automated Deployment from GitHub
-
-### Step 1 — render.yaml Configuration
-
-```yaml
-services:
-  - type: web
-    name: be-todo
-    env: docker
-    dockerfilePath: ./backend/Dockerfile
-    envVars:
-      - key: DB_HOST
-        value: dpg-d7mb3868bjmc7388gpj0-a
-      - key: DB_PORT
-        value: 5432
-      - key: DB_USER
-        value: todo_db_d50l_user
-      - key: DB_PASSWORD
-        value: ohxtdmfkDOYdK8Lv6QAd8lv1Rh5LIwHi
-      - key: DB_NAME
-        value: todo_db_d50l
-      - key: PORT
-        value: 5000
-
-  - type: web
-    name: fe-todo
-    env: docker
-    dockerfilePath: ./frontend/Dockerfile
-    envVars:
-      - key: VITE_API_URL
-        value: https://be-todo-02240335.onrender.com
-```
+**Solution:** Cleared Docker build cache using `docker builder prune -a -f` and updated the Jenkins docker-hub-creds with a new Docker Hub Personal Access Token that had Read & Write permissions.
 
 ---
 
-### Screenshot 24 — render.yaml in VS Code
+### Challenge 5 — Wrong Repository URL in Pipeline
+**Problem:** Jenkins was trying to fetch from the wrong repository URL.
 
-![alt text](<images/Screenshot 2026-04-29 at 9.57.05 PM.png>)
-
----
-
-### Step 2 — Pushing Code to GitHub
-
-```bash
-git init
-git add .
-git commit -m "initial commit"
-git branch -M main
-git remote add origin https://github.com/Waiba334/A1_DSO101.git
-git push -u origin main
-```
+**Solution:** Updated the pipeline configuration to use the correct repository URL `https://github.com/Waiba334/A2_DSO101.git` and changed the Checkout stage to use `checkout scm` instead of a hardcoded git step.
 
 ---
 
-### Screenshot 25 — GitHub Repository with All Files
+## Pipeline Summary
 
-![Github Repo](<images/Screenshot 2026-04-29 at 9.58.11 PM.png>)
+| Stage | Status | Time |
+|-------|--------|------|
+| Checkout SCM | ✅ Pass | 1s |
+| Tool Install | ✅ Pass | 196ms |
+| Checkout | ✅ Pass | 1s |
+| Install Backend | ✅ Pass | 1s |
+| Test Backend | ✅ Pass | 2s |
+| Install Frontend | ✅ Pass | 1s |
+| Build Frontend | ✅ Pass | 1s |
+| Build & Push Docker Images | ✅ Pass | 48s |
 
----
-
-### Step 3 — Connecting Render Blueprint to GitHub
-
-1. Render → New → Blueprint
-2. Connected GitHub account
-3. Selected A1_DSO101 repository
-4. Render auto-detected render.yaml
-
----
-
-### Screenshot 26 — Render Blueprint Connecting to GitHub
-
-![alt text](<images/Screenshot 2026-05-01 at 10.30.09 AM.png>)
-
-![alt text](<images/Screenshot 2026-05-01 at 10.32.52 AM.png>)
-
----
-
-### Screenshot 27 — Auto Deploy Triggered by Git Push
-
-![alt text](<images/Screenshot 2026-05-01 at 10.39.36 AM.png>)
-
-![alt text](<images/Screenshot 2026-05-01 at 10.39.48 AM.png>)
-
----
-
-### Screenshot 28 — All Services Auto Deployed via Blueprint
-
-![alt text](<images/Screenshot 2026-05-01 at 10.37.23 AM.png>)
+**Total Runtime:** ~1 min 0s
 
 ---
 
 ## Live URLs
 
-| Service | URL |
-|---------|-----|
-| Frontend | https://fe-todo-latest.onrender.com |
-| Backend API | https://be-todo-02240335.onrender.com/todos |
-| Backend /todos endpoint | https://be-todo-02240335.onrender.com/todos |
+| Resource | URL |
+|----------|-----|
+| GitHub Repo | https://github.com/Waiba334/A2_DSO101 |
 | Docker Hub | https://hub.docker.com/u/bishalwaiba |
-| GitHub Repo | https://github.com/Waiba334/A1_DSO101 |
+| Backend Image | https://hub.docker.com/r/bishalwaiba/be-todo |
+| Frontend Image | https://hub.docker.com/r/bishalwaiba/fe-todo |
