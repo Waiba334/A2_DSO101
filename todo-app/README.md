@@ -67,19 +67,9 @@ DB_NAME=your-db-name
 PORT=5000
 ```
 
-### Frontend — Environment Variables (.env)
-
-```
-VITE_API_URL=http://localhost:5000
-```
-
----
-
 ### Screenshot 1 — Project Structure in VS Code
 
-```
-[ INSERT SCREENSHOT: VS Code showing the full folder structure with backend/, frontend/, render.yaml ]
-```
+![alt text](<images/Screenshot 2026-05-06 at 2.36.53 PM.png>)
 
 ---
 
