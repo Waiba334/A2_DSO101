@@ -10,9 +10,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    credentialsId: 'github-creds',
-                    url: 'https://github.com/Waiba334/A2_DSO101.git'
+                checkout scm
             }
         }
         stage('Install Backend') {
