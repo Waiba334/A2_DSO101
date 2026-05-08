@@ -49,23 +49,24 @@ pipeline {
             }
         }
         stage('Build & Push Docker Images') {
-            steps {
-                script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-creds') {
-                        def beImage = docker.build(
-                            "${bishalwaiba}/be-todo:${02240335}",
-                            '--platform linux/amd64 ./todo-app/backend'
-                        )
-                        beImage.push()
-                        def feImage = docker.build(
-                            "${bishalwaiba}/fe-todo:${latest}",
-                            '--platform linux/amd64 ./todo-app/frontend'
-                        )
-                        feImage.push()
-                    }
-                }
+    steps {
+        script {
+            withCredentials([usernamePassword(
+                credentialsId: 'docker-hub-creds',
+                usernameVariable: 'bishalwaiba',
+                passwordVariable: 'Tamang092'
+            )]) {
+                sh '''
+                    echo $DOCKER_PASS | /usr/local/bin/docker login -u $DOCKER_USER --password-stdin
+                    /usr/local/bin/docker build -t bishalwaiba/be-todo:02240335 ./todo-app/backend
+                    /usr/local/bin/docker push bishalwaiba/be-todo:02240335
+                    /usr/local/bin/docker build -t bishalwaiba/fe-todo:latest ./todo-app/frontend
+                    /usr/local/bin/docker push bishalwaiba/fe-todo:latest
+                '''
             }
         }
+    }
+}
     }
     post {
         success {
